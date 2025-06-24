@@ -1,0 +1,175 @@
+{
+  "unified_voice_api_endpoints": {
+    "base_url": "http://localhost:8000",
+    "description": "Unified Voice Authentication & Voice Cloning API with JWT authentication",
+    "endpoints": {
+      "1_api_info": {
+        "endpoint": "GET /",
+        "description": "Get API information and available endpoints",
+        "curl_command": "curl -X GET http://localhost:8000/",
+        "sample_input": "No input required",
+        "sample_output": {
+          "message": "Unified Voice Authentication & Voice Cloning API",
+          "version": "1.0.0",
+          "endpoints": {
+            "/enroll": "POST - Enroll a new user",
+            "/authenticate": "POST - Authenticate a user",
+            "/clone-voice": "POST - Clone voice (requires JWT)",
+            "/users": "GET - List enrolled users",
+            "/users/{user_name}": "DELETE - Delete a user"
+          }
+        }
+      },
+      "2_enroll_user": {
+        "endpoint": "POST /enroll",
+        "description": "Enroll a new user with voice sample and get JWT token",
+        "curl_command": "curl -X POST http://localhost:8000/enroll -F \"name=John\" -F \"audio_file=@john_voice.wav\"",
+        "sample_input": {
+          "form_data": {
+            "name": "John",
+            "audio_file": "john_voice.wav (audio file)"
+          },
+          "supported_formats": ["wav", "mp3", "flac", "m4a", "ogg"]
+        },
+        "sample_output_success": {
+          "message": "User John enrolled successfully",
+          "user_name": "John",
+          "jwt_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiJKb2huIiwiZXhwIjoxNzM0NTQzMjAwfQ.abc123...",
+          "token_expires_in": "24 hours"
+        },
+        "sample_output_error": {
+          "detail": "User 'John' already exists. Please choose a different name."
+        }
+      },
+      "3_authenticate_user": {
+        "endpoint": "POST /authenticate",
+        "description": "Authenticate user with voice sample and get JWT token",
+        "curl_command": "curl -X POST http://localhost:8000/authenticate -F \"audio_file=@test_voice.wav\"",
+        "sample_input": {
+          "form_data": {
+            "audio_file": "test_voice.wav (audio file)"
+          },
+          "supported_formats": ["wav", "mp3", "flac", "m4a", "ogg"]
+        },
+        "sample_output_success": {
+          "authenticated": true,
+          "recognized_user": "John",
+          "confidence_score": 0.95,
+          "distance": 0.000001,
+          "match_quality": "ULTRA_STRICT",
+          "jwt_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiJKb2huIiwiZXhwIjoxNzM0NTQzMjAwfQ.abc123...",
+          "token_expires_in": "24 hours"
+        },
+        "sample_output_failure": {
+          "authenticated": false,
+          "message": "Voice authentication failed",
+          "recognized_user": null,
+          "distance": 0.45,
+          "match_quality": "NO_MATCH",
+          "details": "No confident match found. Closest match: John (distance: 0.45, threshold: 0.000001)"
+        },
+        "sample_output_no_users": {
+          "authenticated": false,
+          "message": "No enrolled users found",
+          "recognized_user": null
+        }
+      },
+      "4_clone_voice": {
+        "endpoint": "POST /clone-voice",
+        "description": "Clone voice using provided audio sample and question (requires JWT authentication)",
+        "curl_command": "curl -X POST http://localhost:8000/clone-voice -H \"Authorization: Bearer YOUR_JWT_TOKEN\" -F \"audio_file=@voice_sample.wav\" -F \"question=Tell me about artificial intelligence\" -o cloned_response.wav",
+        "sample_input": {
+          "headers": {
+            "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiJKb2huIiwiZXhwIjoxNzM0NTQzMjAwfQ.abc123..."
+          },
+          "form_data": {
+            "audio_file": "voice_sample.wav (audio file)",
+            "question": "Tell me about artificial intelligence"
+          },
+          "supported_formats": ["wav", "mp3", "flac", "m4a", "ogg"]
+        },
+        "sample_output_success": {
+          "content_type": "audio/wav",
+          "response": "Binary audio file containing cloned voice response",
+          "note": "The response will be an audio file that you can save and play"
+        },
+        "sample_output_error_auth": {
+          "detail": "Invalid or expired token"
+        },
+        "sample_output_error_missing_auth": {
+          "detail": "Authorization header missing"
+        },
+        "sample_output_error_invalid_file": {
+          "detail": "Invalid audio file format. Supported formats: wav, mp3, flac, m4a, ogg"
+        }
+      },
+      "5_list_users": {
+        "endpoint": "GET /users",
+        "description": "List all enrolled users",
+        "curl_command": "curl -X GET http://localhost:8000/users",
+        "sample_input": "No input required",
+        "sample_output_with_users": {
+          "enrolled_users": ["John", "Alice", "Bob"],
+          "total_users": 3
+        },
+        "sample_output_no_users": {
+          "enrolled_users": [],
+          "total_users": 0
+        }
+      },
+      "6_delete_user": {
+        "endpoint": "DELETE /users/{user_name}",
+        "description": "Delete an enrolled user",
+        "curl_command": "curl -X DELETE http://localhost:8000/users/John",
+        "sample_input": {
+          "path_parameter": {
+            "user_name": "John"
+          }
+        },
+        "sample_output_success": {
+          "message": "User 'John' deleted successfully"
+        },
+        "sample_output_error": {
+          "detail": "User 'John' not found"
+        }
+      }
+    },
+    "authentication_flow": {
+      "step_1": {
+        "action": "Enroll user",
+        "command": "curl -X POST http://localhost:8000/enroll -F \"name=John\" -F \"audio_file=@john_voice.wav\"",
+        "result": "Get JWT token for John"
+      },
+      "step_2": {
+        "action": "Authenticate user (alternative to enroll)",
+        "command": "curl -X POST http://localhost:8000/authenticate -F \"audio_file=@john_voice.wav\"",
+        "result": "Get JWT token if voice matches enrolled user"
+      },
+      "step_3": {
+        "action": "Use voice cloning with JWT",
+        "command": "curl -X POST http://localhost:8000/clone-voice -H \"Authorization: Bearer JWT_TOKEN\" -F \"audio_file=@voice.wav\" -F \"question=Hello world\" -o response.wav",
+        "result": "Get cloned voice audio file"
+      }
+    },
+    "error_codes": {
+      "400": "Bad Request - Invalid input data",
+      "401": "Unauthorized - Invalid or missing JWT token",
+      "404": "Not Found - User not found",
+      "422": "Unprocessable Entity - Invalid file format or missing required fields",
+      "500": "Internal Server Error - Server processing error"
+    },
+    "supported_audio_formats": ["wav", "mp3", "flac", "m4a", "ogg"],
+    "jwt_token_info": {
+      "expiration": "24 hours",
+      "algorithm": "HS256",
+      "claims": ["user_name", "exp"],
+      "usage": "Required for /clone-voice endpoint"
+    },
+    "voice_authentication_thresholds": {
+      "ULTRA_STRICT": "< 0.000001 (near perfect match)",
+      "STRONG_MATCH": "< 0.1 (very confident)",
+      "MODERATE_MATCH": "< 0.2 (moderate confidence)",
+      "NO_MATCH": "> 0.35 (authentication failed)"
+    }
+  }
+}
