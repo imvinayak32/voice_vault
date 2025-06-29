@@ -62,14 +62,14 @@ export default function LoginPage() {
         navigate("/dashboard");
       } else {
         // Show specific error message with details
-        let errorMsg = result.message || "Voice authentication failed.";
+        let errorMsg = "Voice authentication failed.";
 
-        if (result.closest_match) {
-          errorMsg += ` Closest match: ${result.closest_match}`;
-          if (result.distance) {
-            errorMsg += ` (distance: ${result.distance.toFixed(6)})`;
-          }
-        }
+        // if (result.closest_match) {
+        //   errorMsg += ` Closest match: ${result.closest_match}`;
+        //   if (result.distance) {
+        //     errorMsg += ` (distance: ${result.distance.toFixed(6)})`;
+        //   }
+        // }
 
         if (
           result.all_distances &&

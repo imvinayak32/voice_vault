@@ -17,12 +17,14 @@ interface AuthContextType {
   updateUser: (updates: Partial<User>) => void;
   isAuthenticated: boolean;
   isJwtAuthenticated: boolean;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check for stored auth data on app load
@@ -36,16 +38,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (jwtToken && userData.tokenExpiresAt) {
         const expiresAt = new Date(userData.tokenExpiresAt);
         if (expiresAt > new Date()) {
-          setUser(userData);
+          // Valid token, restore user with token
+          setUser({ ...userData, jwtToken });
         } else {
           // Token expired, clear auth data
           logout();
         }
-      } else if (!jwtToken) {
-        // No JWT token, user needs to authenticate
-        setUser({ ...userData, jwtToken: undefined });
+      } else {
+        // No JWT token or no expiry data, but user data exists
+        // This means user is enrolled but may need to re-authenticate for JWT features
+        setUser(userData);
       }
     }
+
+    // Set loading to false after checking authentication
+    setIsLoading(false);
   }, []);
 
   const login = (userData: User) => {
@@ -64,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     setUser(null);
+    setIsLoading(false);
     localStorage.removeItem("voicevault_user");
     apiService.logout(); // Clear JWT token from API service
   };
@@ -91,6 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updateUser,
         isAuthenticated,
         isJwtAuthenticated,
+        isLoading,
       }}
     >
       {children}

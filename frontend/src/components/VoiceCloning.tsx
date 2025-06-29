@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import {
   Send,
   Play,
@@ -24,14 +24,21 @@ export default function VoiceCloning() {
   const [seed, setSeed] = useState<number | undefined>(undefined);
 
   const audioRef = useRef<HTMLAudioElement>(null);
+  const isSubmittingRef = useRef(false);
   const { isJwtAuthenticated } = useAuth();
 
-  const handleAudioRecorded = (file: File) => {
+  const handleAudioRecorded = useCallback((file: File) => {
     setAudioFile(file);
-  };
+    setError(""); // Clear any previous errors when new audio is provided
+  }, []);
 
   const handleGenerateVoice = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Prevent multiple simultaneous requests
+    if (isGenerating || isSubmittingRef.current) {
+      return;
+    }
 
     if (!isJwtAuthenticated) {
       setError(
@@ -50,6 +57,7 @@ export default function VoiceCloning() {
       return;
     }
 
+    isSubmittingRef.current = true;
     setIsGenerating(true);
     setError("");
     setGeminiResponse("");
@@ -62,16 +70,22 @@ export default function VoiceCloning() {
         seed
       );
 
-      setGeneratedAudio(audioBlob);
+      console.log("API response received, audioBlob:", audioBlob);
+      console.log("audioBlob type:", typeof audioBlob);
+      console.log("audioBlob size:", audioBlob?.size);
 
-      // Extract Gemini response from response headers if available
-      // Note: In a real implementation, you might want to get this differently
+      setGeneratedAudio(audioBlob);
       setGeminiResponse(`AI response generated for: "${question}"`);
+
+      console.log(
+        "State updated - generatedAudio set, isGenerating will be set to false"
+      );
     } catch (err) {
       const error = err as Error;
       setError(error.message || "Voice cloning failed. Please try again.");
     } finally {
       setIsGenerating(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -112,6 +126,7 @@ export default function VoiceCloning() {
     setGeminiResponse("");
     setSeed(undefined);
     setIsPlaying(false);
+    setIsGenerating(false);
   };
 
   // Sample questions for inspiration
